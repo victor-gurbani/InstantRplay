@@ -240,6 +240,11 @@ class MainActivity : AppCompatActivity() {
         } else {
             File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "InstantRplay")
         }
+        val beforeDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS)
+        } else {
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+        }
 
         // Current time
         val currentTime = System.currentTimeMillis()
@@ -282,7 +287,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Convert the concatenated PCM file to WAV
-            val wavFile = File(dir, "output.wav")
+            val wavFile = File(beforeDir, "InstantRplay_${currentTime}.wav")
             Log.d("saveLast", "Converting WAV file to: ${wavFile.absolutePath}")
             rawToWave(tempPcmFile, wavFile)
 
@@ -302,17 +307,13 @@ class MainActivity : AppCompatActivity() {
 
     @Throws(IOException::class)
     fun rawToWave(rawFile: File, waveFile: File) {
-        val rawData = ByteArray(rawFile.length().toInt())
-
-        DataInputStream(FileInputStream(rawFile)).use { input ->
-            input.readFully(rawData)
-        }
+        val bufferSize = 1024 * 4 // Process 4KB at a time
+        val buffer = ByteArray(bufferSize)
 
         DataOutputStream(FileOutputStream(waveFile)).use { output ->
             // WAVE header
-            // see http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
             writeString(output, "RIFF") // chunk id
-            writeInt(output, 36 + rawData.size) // chunk size
+            writeInt(output, 36 + rawFile.length().toInt()) // chunk size
             writeString(output, "WAVE") // format
             writeString(output, "fmt ") // subchunk 1 id
             writeInt(output, 16) // subchunk 1 size
@@ -323,19 +324,28 @@ class MainActivity : AppCompatActivity() {
             writeShort(output, 2.toShort()) // block align
             writeShort(output, 16.toShort()) // bits per sample
             writeString(output, "data") // subchunk 2 id
-            writeInt(output, rawData.size) // subchunk 2 size
+            writeInt(output, rawFile.length().toInt()) // subchunk 2 size
 
-            // Audio data (conversion big endian -> little endian)
-            val shorts = ShortArray(rawData.size / 2)
-            ByteBuffer.wrap(rawData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
-            val bytes = ByteBuffer.allocate(shorts.size * 2)
-            for (s in shorts) {
-                bytes.putShort(s)
+            // Process the file in chunks to avoid OutOfMemoryError
+            DataInputStream(FileInputStream(rawFile)).use { input ->
+                while (true) {
+                    val bytesRead = input.read(buffer)
+                    if (bytesRead == -1) break
+
+                    val shorts = ShortArray(bytesRead / 2)
+                    ByteBuffer.wrap(buffer, 0, bytesRead).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
+
+                    val byteBuffer = ByteBuffer.allocate(shorts.size * 2)
+                    for (s in shorts) {
+                        byteBuffer.putShort(s)
+                    }
+
+                    output.write(byteBuffer.array(), 0, shorts.size * 2)
+                }
             }
-
-            output.write(fullyReadFileToBytes(rawFile))
         }
     }
+
 
     @Throws(IOException::class)
     fun fullyReadFileToBytes(file: File): ByteArray {

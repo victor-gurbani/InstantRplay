@@ -297,7 +297,8 @@ class AudioRecordingService : Service() {
                         deleted = contentResolver.delete(deleteUri, null, null) > 0
                     } catch (e: RecoverableSecurityException) {
                         // Throw the RecoverableSecurityException to be handled
-                        throw e
+                        // TODO: say smth on error
+                        Log.e(TAG, "RecoverableSecurityException: ${e.message}", e)
                     } catch (e: SecurityException) {
                         Log.e(TAG, "SecurityException: ${e.message}", e)
                     }
@@ -306,12 +307,15 @@ class AudioRecordingService : Service() {
             }
         }
 
-        // Continue with file system fallback for older versions, if necessary
+
+        // Continue with file system // TODO: smth cuz I can't delete files from MediaStore without failures if files are changed or updated
+
         if (cursor == null && dir.exists()) {
             dir.listFiles()?.forEach { file ->
                 if (file.name.startsWith(FILE_PREFIX)) {
                     val fileAge = currentTime - file.lastModified()
-                    if (fileAge > MAX_RECORDING_AGE_MS) {
+                    Log.d(TAG, "File: ${file.name}, Age: $fileAge")
+                    if (fileAge > MAX_RECORDING_AGE_MS && file.lastModified() > 0L) {
                         Log.d("AudioRecordingService", "Deleting file: ${file.name}")
                         val deleted = file.delete()
                         Log.d(TAG, "File system delete operation for file: ${file.name}, Result: $deleted")
