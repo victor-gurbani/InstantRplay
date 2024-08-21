@@ -288,7 +288,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Convert the concatenated PCM file to WAV
-            val wavFile = File(beforeDir, "InstantRplay_${currentTime}_${minutes}.wav")
+            val wavFile = File(beforeDir, "InstantRplay_${currentTime}_${minutes}min.wav")
             Log.d("saveLast", "Converting tempPCM file to: ${wavFile.absolutePath}")
             rawToWave(tempPcmFile, wavFile)
 

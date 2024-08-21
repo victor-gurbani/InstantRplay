@@ -22,7 +22,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
 
-    <!-- TODO: SCHEDULE_EXACT_ALARM-->
+    <!-- TODO: SCHEDULE_EXACT_ALARM or smth to start on BOOT_COMPLETED-->
 
     <application
         android:allowBackup="true"
