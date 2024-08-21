@@ -2,6 +2,8 @@ package com.vgcsoftware.instantrplay
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -10,9 +12,13 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.DocumentsContract
+import android.provider.Settings
 import android.util.Log
 import android.view.Menu
+import android.widget.Toast
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,13 +46,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val homeViewModel: HomeViewModel by viewModels()
 
+    private var isAlarmScheduled = false
+
     // Permission launcher for audio recording and storage access
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val granted = permissions.entries.all { it.value }
         if (granted) {
-            // Create directory to store files // TODO: Check if this is necessary
+            // Create directory to store files
             val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), "InstantRplay")
             } else {
@@ -55,8 +63,13 @@ class MainActivity : AppCompatActivity() {
             if (!dir.exists()) {
                 dir.mkdirs()
             }
+            while(!dir.exists()) {
+                Log.d("MainActivity", "Waiting for directory to be created")
+            }
             requestScopedStoragePermission()
+            scheduleServiceRestart()
             startAudioRecordingService()
+            scheduleServiceRestart() // again just in case
         } else {
             Snackbar.make(findViewById(android.R.id.content), "Permissions required for audio recording", Snackbar.LENGTH_LONG).show()
         }
@@ -87,6 +100,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    private fun requestIgnoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val packageName = packageName
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun scheduleServiceRestart() {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, AudioRecordingService::class.java)
+        val pendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        if (!isAlarmScheduled) {
+            isAlarmScheduled = true
+            alarmManager.setInexactRepeating(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + 60 * 1000,  // Start after 1 minute
+                60 * 1000,  // Repeat every 1 minute
+                pendingIntent
+            )
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -112,6 +151,8 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
+        requestIgnoreBatteryOptimizations()
 
         // Request permissions for audio recording and media storage access and notifications
         requestPermissions()
@@ -231,7 +272,8 @@ class MainActivity : AppCompatActivity() {
 
     fun saveLast(minutes: Int) {
         Log.d("saveLast", "Saving PCM files from the last $minutes minutes")
-        Snackbar.make(findViewById(android.R.id.content), "Saving last $minutes min", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show()
+        // Snackbar.make(findViewById(android.R.id.content), "Saving last $minutes min", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show() // this wont show
+        Toast.makeText(this, "Saving last $minutes min", Toast.LENGTH_LONG).show()
 
         // Directory containing PCM files
         val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

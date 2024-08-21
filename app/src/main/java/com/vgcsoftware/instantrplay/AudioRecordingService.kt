@@ -4,8 +4,11 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.RecoverableSecurityException
 import android.app.Service
+import android.app.job.JobInfo
+import android.content.ComponentName
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
@@ -33,12 +36,23 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import android.content.Context
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
 import java.io.ByteArrayOutputStream
 
 
 class AudioRecordingService : Service() {
 
+    /*private fun scheduleJob(context: Context) { // TODO: Implement this
+        val componentName = ComponentName(context, MyJobService::class.java)
+        val jobInfo = JobInfo.Builder(123, componentName)
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setPersisted(true)  // Keep job across reboots
+            .setMinimumLatency(1 * 1000) // Start as soon as possible
+            .build()
 
+        val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+        jobScheduler.schedule(jobInfo)
+    }*/
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO + Job())
     private var isRecording = false
@@ -61,15 +75,35 @@ class AudioRecordingService : Service() {
         private const val TAG = "AudioRecordingService"
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
+        try {
+            startForeground(NOTIFICATION_ID, createNotification(), FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting foreground service: ${e.message}", e)
+            // Show notification
+            showErrorNotification()
+        }
         // scheduleOldFileDeletion() // will be called when a new file is saved
+
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startRecording()
+        try {
+            startRecording()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting foreground service: ${e.message}", e)
+            // Show notification
+            showErrorNotification()
+        }
+
+        // If your service was restarted after being killed
+        if (flags == START_FLAG_REDELIVERY) {
+            // Handle the restart logic
+        }
         return START_STICKY
     }
 
@@ -77,24 +111,59 @@ class AudioRecordingService : Service() {
         super.onDestroy()
         stopRecording()
         coroutineScope.cancel()
+         // Schedule the job to restart the service
+        // scheduleJob(this) // TODO: Implement this
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotification(): Notification {
+        /*val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        return Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle("Audio Recording Service")
+            .setContentText("Service is running")
+            .setSmallIcon(R.drawable.ic_notification) // Ensure you have an icon resource
+            .setContentIntent(pendingIntent)
+            .setOngoing(true) // Makes the notification non-dismissible
+            .build()*/
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Recording Audio")
-            .setContentText("Recording in progress")
+            .setContentTitle("Instnat Rplay Service")
+            .setContentText("Currently active")
             .setSmallIcon(R.drawable.ic_microphone)
             .build()
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun showErrorNotification() {
+        val restartIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val restartPendingIntent = PendingIntent.getActivity(this, 0, restartIntent, PendingIntent.FLAG_IMMUTABLE)
+
+        val notification = Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle("Service Error")
+            .setContentText("Click to open the app")
+            .setSmallIcon(R.drawable.ic_microphone) // Ensure you have an icon resource
+            .setContentIntent(restartPendingIntent)
+            .setAutoCancel(true) // Dismisses the notification when clicked
+            .build()
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Audio Recording Service",
-                NotificationManager.IMPORTANCE_LOW
+                "Instant Rplay Service",
+                NotificationManager.IMPORTANCE_HIGH
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
@@ -321,7 +390,7 @@ class AudioRecordingService : Service() {
                     Log.d(TAG, "Delete operation finished for file: $fileName with age $fileAge, Result: $deleted")
                     // now log the same but with absolute path
                     val absolutePath = getAbsolutePathFromContentUri(this, deleteUri)
-                    Log.d(TAG, "File: $absolutePath, Age: $fileAge")
+                    // Log.d(TAG, "File: $absolutePath, Age: $fileAge")
                 }
             }
         }
