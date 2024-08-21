@@ -10,8 +10,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.os.Handler
-import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
 import android.view.Menu
@@ -335,7 +333,7 @@ class MainActivity : AppCompatActivity() {
                     if (bytesRead == -1) break
 
                     val shorts = ShortArray(bytesRead / 2)
-                    ByteBuffer.wrap(buffer, 0, bytesRead).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
+                    ByteBuffer.wrap(buffer, 0, bytesRead).order(ByteOrder.BIG_ENDIAN).asShortBuffer().get(shorts)
 
                     val byteBuffer = ByteBuffer.allocate(shorts.size * 2)
                     for (s in shorts) {
@@ -387,7 +385,7 @@ class MainActivity : AppCompatActivity() {
     @Throws(IOException::class)
     fun writeString(output: DataOutputStream, value: String) {
         for (i in value.indices) {
-            output.write(value[i].toInt())
+            output.write(value[i].code)
         }
     }
 
