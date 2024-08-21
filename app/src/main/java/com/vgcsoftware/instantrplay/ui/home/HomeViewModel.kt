@@ -11,7 +11,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     // LiveData to manage text updates for the UI
     private val _text = MutableLiveData<String>().apply {
-        value = "This is home Fragment"
+        value = "Use the button below to save the last 30 minutes into Recording/"
     }
     val text: LiveData<String> = _text
 

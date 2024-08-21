@@ -10,6 +10,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
 import android.view.Menu
@@ -98,9 +100,6 @@ class MainActivity : AppCompatActivity() {
         // Set up the toolbar and Floating Action Button (FAB)
         setSupportActionBar(binding.appBarMain.toolbar)
         binding.appBarMain.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Converting to MP3", Snackbar.LENGTH_LONG)
-                .setAction("Action", null)
-                .setAnchorView(R.id.fab).show()
             saveLast(30)
         }
 
@@ -234,6 +233,8 @@ class MainActivity : AppCompatActivity() {
 
     fun saveLast(minutes: Int) {
         Log.d("saveLast", "Saving PCM files from the last $minutes minutes")
+        Snackbar.make(findViewById(android.R.id.content), "Saving last $minutes min", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show()
+
         // Directory containing PCM files
         val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), "InstantRplay")
@@ -287,11 +288,12 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Convert the concatenated PCM file to WAV
-            val wavFile = File(beforeDir, "InstantRplay_${currentTime}.wav")
-            Log.d("saveLast", "Converting WAV file to: ${wavFile.absolutePath}")
+            val wavFile = File(beforeDir, "InstantRplay_${currentTime}_${minutes}.wav")
+            Log.d("saveLast", "Converting tempPCM file to: ${wavFile.absolutePath}")
             rawToWave(tempPcmFile, wavFile)
 
             Log.d("saveLast", "WAV file saved successfully: ${wavFile.absolutePath}")
+            Snackbar.make( findViewById(android.R.id.content), "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show()
             // Add to MediaStore
             MediaScannerConnection.scanFile(this, arrayOf(wavFile.absolutePath), null, null)
         } catch (e: IOException) {

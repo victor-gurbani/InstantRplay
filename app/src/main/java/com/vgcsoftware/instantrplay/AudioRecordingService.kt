@@ -259,7 +259,7 @@ class AudioRecordingService : Service() {
         val audioUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val currentTime = System.currentTimeMillis()
 
-        // Directory check for older Android versions
+      // Determine the directory based on the Android version
         val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), AUDIO_DIR)
         } else {
@@ -268,8 +268,24 @@ class AudioRecordingService : Service() {
 
         Log.d(TAG, "Checking for old files in: ${dir.absolutePath}")
 
-        val selection = "${MediaStore.Audio.Media.DISPLAY_NAME} LIKE ?"
-        val selectionArgs = arrayOf("$FILE_PREFIX%") // Matches files with the FILE_PREFIX
+        // Selection criteria to filter files by directory and file prefix
+        val selection: String
+        val selectionArgs: Array<String>
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // For Android 10 (API level 29) and above
+            selection = "${MediaStore.Audio.Media.RELATIVE_PATH} = ? AND ${MediaStore.Audio.Media.DISPLAY_NAME} LIKE ?"
+            selectionArgs = arrayOf(
+                "${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Environment.DIRECTORY_RECORDINGS else Environment.DIRECTORY_MUSIC}/$AUDIO_DIR/",
+                "$FILE_PREFIX%"
+            )
+
+        } else {
+            // For older Android versions
+            selection = "${MediaStore.Audio.Media.DATA} LIKE ? AND ${MediaStore.Audio.Media.DISPLAY_NAME} LIKE ?"
+            selectionArgs = arrayOf("${dir.absolutePath}/%", "$FILE_PREFIX%")
+        }
+
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.DISPLAY_NAME,
@@ -303,12 +319,15 @@ class AudioRecordingService : Service() {
                         Log.e(TAG, "SecurityException: ${e.message}", e)
                     }
                     Log.d(TAG, "Delete operation finished for file: $fileName with age $fileAge, Result: $deleted")
+                    // now log the same but with absolute path
+                    val absolutePath = getAbsolutePathFromContentUri(this, deleteUri)
+                    Log.d(TAG, "File: $absolutePath, Age: $fileAge")
                 }
             }
         }
 
 
-        // Continue with file system // TODO: smth cuz I can't delete files from MediaStore without failures if files are changed or updated
+        // Continue with file system
 
         if (cursor == null && dir.exists()) {
             dir.listFiles()?.forEach { file ->
