@@ -46,6 +46,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val homeViewModel: HomeViewModel by viewModels()
 
+    companion object {
+        private const val SAMPLE_RATE = 44100
+    }
     private var isAlarmScheduled = false
 
     // Permission launcher for audio recording and storage access
@@ -133,6 +136,18 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // setContentView(R.layout.activity_main) // TODO: Check differences
+
+        if (intent.getStringExtra("START_VALUE") == "SERVICE_ERROR_NOTIFICATION") {
+            stopService(Intent(this, AudioRecordingService::class.java))
+            // Show toast
+            Toast.makeText(this, "Service restarting", Toast.LENGTH_LONG).show()
+            val restartIntent = Intent(this, AudioRecordingService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(restartIntent)
+            } else {
+                startService(restartIntent)
+            }
+        }
 
         // Set up the toolbar and Floating Action Button (FAB)
         setSupportActionBar(binding.appBarMain.toolbar)
@@ -299,9 +314,11 @@ class MainActivity : AppCompatActivity() {
 
         if (filteredFiles.isNullOrEmpty()) {
             Log.d("saveLast", "No PCM files found in the last $minutes minutes.")
-            Snackbar.make(findViewById(android.R.id.content), "No PCM files found in the last $minutes minutes.", Snackbar.LENGTH_LONG)
-                .setAction("Action", null)
-                .setAnchorView(R.id.fab).show()
+            //Snackbar.make(findViewById(android.R.id.content), "No PCM files found in the last $minutes minutes.", Snackbar.LENGTH_LONG)
+            //    .setAction("Action", null)
+            //    .setAnchorView(R.id.fab).show()
+            // Show toast with the same message
+            Toast.makeText(this, "No PCM files found in the last $minutes minutes.", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -361,8 +378,8 @@ class MainActivity : AppCompatActivity() {
             writeInt(output, 16) // subchunk 1 size
             writeShort(output, 1.toShort()) // audio format (1 = PCM)
             writeShort(output, 1.toShort()) // number of channels
-            writeInt(output, 44100) // sample rate
-            writeInt(output, 44100 * 2) // byte rate
+            writeInt(output, SAMPLE_RATE) // sample rate
+            writeInt(output, SAMPLE_RATE * 2) // byte rate
             writeShort(output, 2.toShort()) // block align
             writeShort(output, 16.toShort()) // bits per sample
             writeString(output, "data") // subchunk 2 id

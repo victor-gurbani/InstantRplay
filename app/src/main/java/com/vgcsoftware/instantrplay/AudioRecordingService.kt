@@ -37,6 +37,7 @@ import java.io.IOException
 import java.util.UUID
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+import android.widget.Toast
 import java.io.ByteArrayOutputStream
 
 
@@ -56,6 +57,7 @@ class AudioRecordingService : Service() {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO + Job())
     private var isRecording = false
+    private var errorOccurred = false
 
     private lateinit var audioRecord: AudioRecord
     private val bufferSizeInBytes: Int = AudioRecord.getMinBufferSize(
@@ -79,12 +81,17 @@ class AudioRecordingService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        try {
-            startForeground(NOTIFICATION_ID, createNotification(), FOREGROUND_SERVICE_TYPE_MICROPHONE)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error starting foreground service: ${e.message}", e)
+        if (!errorOccurred) {
+            try {
+                startForeground(NOTIFICATION_ID, createNotification(), FOREGROUND_SERVICE_TYPE_MICROPHONE)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting foreground service: ${e.message}", e)
+                // Show notification
+                showErrorNotification()
+            }
+        } else {
             // Show notification
-            showErrorNotification()
+            // showErrorNotification() // doubled
         }
         // scheduleOldFileDeletion() // will be called when a new file is saved
 
@@ -92,10 +99,15 @@ class AudioRecordingService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        try {
-            startRecording()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error starting foreground service: ${e.message}", e)
+        if (!errorOccurred) {
+            try {
+                startRecording()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting foreground rec service: ${e.message}", e)
+                // Show notification
+                showErrorNotification()
+            }
+        } else {
             // Show notification
             showErrorNotification()
         }
@@ -110,6 +122,7 @@ class AudioRecordingService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         stopRecording()
+        errorOccurred = false
         coroutineScope.cancel()
          // Schedule the job to restart the service
         // scheduleJob(this) // TODO: Implement this
@@ -140,8 +153,17 @@ class AudioRecordingService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun showErrorNotification() {
+        // Stop the recording and release resources
+        errorOccurred = true
+        stopRecording()
+        coroutineScope.cancel()
+
+        Log.d(TAG, "Showing error notification, after killing everything. Recording? $isRecording")
+        // Show toast
+        Toast.makeText(this, "Error occurred in InstantRplay, check Notification to re-start.", Toast.LENGTH_LONG).show()
         val restartIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("START_VALUE", "SERVICE_ERROR_NOTIFICATION")
         }
         val restartPendingIntent = PendingIntent.getActivity(this, 0, restartIntent, PendingIntent.FLAG_IMMUTABLE)
 
@@ -151,10 +173,15 @@ class AudioRecordingService : Service() {
             .setSmallIcon(R.drawable.ic_microphone) // Ensure you have an icon resource
             .setContentIntent(restartPendingIntent)
             .setAutoCancel(true) // Dismisses the notification when clicked
+            .setOngoing(true) // Makes the notification undismissable until clicked
             .build()
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIFICATION_ID, notification)
+
+
+        // Stop the service
+        stopSelf()
     }
 
 
@@ -221,7 +248,7 @@ class AudioRecordingService : Service() {
         audioRecord.release()
     }
 
-    private suspend fun recordAndSaveAudio() {
+    private suspend fun recordAndSaveAudio() { // TODO: run this when stoppin gaudio to prevent loss and when exporting to make it exact
         val buffer = ByteArray(bufferSizeInBytes)
         val chunkBuffer = ByteArrayOutputStream()  // Accumulate data over chunk duration
         var startTime = System.currentTimeMillis()
