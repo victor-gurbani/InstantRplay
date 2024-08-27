@@ -58,6 +58,7 @@ class AudioRecordingService : Service() {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + Job())
     private var isRecording = false
     private var errorOccurred = false
+    private var errorToastShown = false
 
     private lateinit var audioRecord: AudioRecord
     private val bufferSizeInBytes: Int = AudioRecord.getMinBufferSize(
@@ -109,7 +110,7 @@ class AudioRecordingService : Service() {
             }
         } else {
             // Show notification
-            showErrorNotification()
+            // showErrorNotification()
         }
 
         // If your service was restarted after being killed
@@ -145,9 +146,9 @@ class AudioRecordingService : Service() {
             .build()*/
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Instnat Rplay Service")
-            .setContentText("Currently active")
-            .setSmallIcon(R.drawable.ic_microphone)
+            .setContentTitle("Have a nice day!") // Changed from Instant Rplay Service to Have a nice day!
+            .setContentText("And don't forget to drink water!") // Changed from Currently active to And don't forget to drink water!
+            .setSmallIcon(R.drawable.ic_sun) // Chnaged to a sun cuz it looks less strange
             .build()
     }
 
@@ -160,7 +161,10 @@ class AudioRecordingService : Service() {
 
         Log.d(TAG, "Showing error notification, after killing everything. Recording? $isRecording")
         // Show toast
-        Toast.makeText(this, "Error occurred in InstantRplay, check Notification to re-start.", Toast.LENGTH_LONG).show()
+        if (!errorToastShown) {
+            Toast.makeText(this, "Error occurred in InstantRplay, check Notification to re-start.", Toast.LENGTH_LONG).show()
+            errorToastShown = true
+        }
         val restartIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("START_VALUE", "SERVICE_ERROR_NOTIFICATION")
@@ -169,8 +173,8 @@ class AudioRecordingService : Service() {
 
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("Service Error")
-            .setContentText("Click to open the app")
-            .setSmallIcon(R.drawable.ic_microphone) // Ensure you have an icon resource
+            .setContentText("Click to restart")
+            .setSmallIcon(R.drawable.ic_microphone)
             .setContentIntent(restartPendingIntent)
             .setAutoCancel(true) // Dismisses the notification when clicked
             .setOngoing(true) // Makes the notification undismissable until clicked
@@ -203,6 +207,9 @@ class AudioRecordingService : Service() {
         Log.d("AudioRecordingService", "Max recording age: $MAX_RECORDING_AGE_MS")
         // this.deleteOldFiles()
 
+        // Reset errors
+        // errorOccurred = false // this is usually irrecoverable and process should be killed to fix
+        // errorToastShown = false // idk prob not how it works
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.RECORD_AUDIO

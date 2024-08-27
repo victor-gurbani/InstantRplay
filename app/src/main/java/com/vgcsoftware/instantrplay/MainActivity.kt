@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -31,6 +32,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.documentfile.provider.DocumentFile
 import com.vgcsoftware.instantrplay.databinding.ActivityMainBinding
 import com.vgcsoftware.instantrplay.ui.home.HomeViewModel
@@ -147,6 +149,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startService(restartIntent)
             }
+            finish()
         }
 
         // Set up the toolbar and Floating Action Button (FAB)
@@ -203,10 +206,6 @@ class MainActivity : AppCompatActivity() {
             permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         } else {
             permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // TODO: request scoped permissions for the folder
         }
 
         // Launch the permission request
@@ -350,7 +349,8 @@ class MainActivity : AppCompatActivity() {
             rawToWave(tempPcmFile, wavFile)
 
             Log.d("saveLast", "WAV file saved successfully: ${wavFile.absolutePath}")
-            Snackbar.make( findViewById(android.R.id.content), "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show()
+            // Snackbar.make( findViewById(android.R.id.content), "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show()
+            Toast.makeText(this, "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Toast.LENGTH_LONG).show()
             // Add to MediaStore
             MediaScannerConnection.scanFile(this, arrayOf(wavFile.absolutePath), null, null)
         } catch (e: IOException) {
