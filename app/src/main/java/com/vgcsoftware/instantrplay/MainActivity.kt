@@ -48,8 +48,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val homeViewModel: HomeViewModel by viewModels()
 
+    private var SAMPLE_RATE = 32000
+
     companion object {
-        private const val SAMPLE_RATE = 44100
+        //
     }
     private var isAlarmScheduled = false
 
@@ -138,6 +140,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // setContentView(R.layout.activity_main) // TODO: Check differences
+
+        // Get the sample rate from SharedPreferences
+        SAMPLE_RATE = PreferencesHelper.getSampleRate(this)
+        Log.d("MainActivity", "Sample rate: $SAMPLE_RATE")
 
         if (intent.getStringExtra("START_VALUE") == "SERVICE_ERROR_NOTIFICATION") {
             stopService(Intent(this, AudioRecordingService::class.java))

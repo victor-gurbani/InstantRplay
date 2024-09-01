@@ -5,13 +5,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.vgcsoftware.instantrplay.PreferencesHelper
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val preferences = PreferencesHelper
+
     // LiveData to manage text updates for the UI
     private val _text = MutableLiveData<String>().apply {
-        value = "Use the button below to save the last 30 minutes into Recording/"
+        value = "Use the button below to save the last 30 minutes into Recording."
     }
     val text: LiveData<String> = _text
 
@@ -20,7 +23,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             // Logic to start the recording, either by interacting with a service
             // or managing the process directly.
-            // You can update UI states here by modifying LiveData or other state managers.
             _text.value = "Recording started"
         }
     }
@@ -33,6 +35,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // You can optionally add more LiveData, StateFlow, or other
-    // state management tools to communicate the recording state.
+    // Retrieve the current sample rate from preferences
+    fun getSampleRate(): Int {
+        return preferences.getSampleRate(this.getApplication())
+    }
+
+    // Update the sample rate in preferences
+    fun setSampleRate(sampleRate: Int) {
+        preferences.setSampleRate(this.getApplication(), sampleRate)
+    }
+
+    // Calculate the size of audio per minute based on sample rate
+    fun calculateSizePerMinute(sampleRate: Int): Double {
+        val bitsPerSample = 16 // Assuming 16-bit PCM
+        val channels = 1 // Mono
+        val bytesPerSecond = (sampleRate * bitsPerSample * channels) / 8
+        val bytesPerMinute = bytesPerSecond * 60
+        return bytesPerMinute.toDouble() / (1024 * 1024) // Convert to MB
+    }
 }

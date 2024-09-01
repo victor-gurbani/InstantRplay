@@ -59,6 +59,7 @@ class AudioRecordingService : Service() {
     private var isRecording = false
     private var errorOccurred = false
     private var errorToastShown = false
+    private var SAMPLE_RATE = 32000
 
     private lateinit var audioRecord: AudioRecord
     private val bufferSizeInBytes: Int = AudioRecord.getMinBufferSize(
@@ -68,7 +69,6 @@ class AudioRecordingService : Service() {
     )
 
     companion object {
-        private const val SAMPLE_RATE = 44100
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "AudioRecordingChannel"
         private const val CHUNK_DURATION_MS = 60_000L // 1 minute chunks
@@ -81,6 +81,11 @@ class AudioRecordingService : Service() {
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate() {
         super.onCreate()
+
+        // Load the sample rate from preferences
+        SAMPLE_RATE = PreferencesHelper.getSampleRate(this)
+        Log.d(TAG, "Sample rate: $SAMPLE_RATE")
+
         createNotificationChannel()
         if (!errorOccurred) {
             try {
