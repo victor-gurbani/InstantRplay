@@ -45,6 +45,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         preferences.setSampleRate(this.getApplication(), sampleRate)
     }
 
+    // Retrieve the current max recording age from preferences
+    fun getMaxRecordingAge(): Int {
+        return preferences.getMaxRecordingAge(this.getApplication())
+    }
+
+    fun setMaxRecordingAge(maxRecordingAge: Int) {
+        preferences.setMaxRecordingAge(this.getApplication(), maxRecordingAge)
+    }
+
     // Calculate the size of audio per minute based on sample rate
     fun calculateSizePerMinute(sampleRate: Int): Double {
         val bitsPerSample = 16 // Assuming 16-bit PCM

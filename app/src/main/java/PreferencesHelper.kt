@@ -7,6 +7,7 @@ object PreferencesHelper {
 
     private const val PREFERENCES_FILE_KEY = "com.vgcsoftware.instantrplay.PREFERENCE_FILE_KEY"
     private const val SAMPLE_RATE_KEY = "sample_rate"
+    private const val MAX_RECORDING_AGE_KEY = "max_recording_age"
 
     private fun getPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFERENCES_FILE_KEY, Context.MODE_PRIVATE)
@@ -23,5 +24,20 @@ object PreferencesHelper {
     fun getSampleRate(context: Context, defaultSampleRate: Int = 32000): Int {
         val prefs = getPreferences(context)
         return prefs.getInt(SAMPLE_RATE_KEY, defaultSampleRate)
+    }
+
+     // Set the max recording age in preferences
+    fun setMaxRecordingAge(context: Context, maxRecordingAge: Int) {
+        val prefs = getPreferences(context)
+        with(prefs.edit()) {
+            putInt(MAX_RECORDING_AGE_KEY, maxRecordingAge)
+            apply() // Use apply() for asynchronous commit
+        }
+    }
+
+    // Get the max recording age from preferences, defaulting to 30 minutes (30 )
+    fun getMaxRecordingAge(context: Context, defaultMaxRecordingAge: Int = 30): Int {
+        val prefs = getPreferences(context)
+        return prefs.getInt(MAX_RECORDING_AGE_KEY, defaultMaxRecordingAge)
     }
 }

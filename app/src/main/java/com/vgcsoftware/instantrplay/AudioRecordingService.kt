@@ -60,6 +60,7 @@ class AudioRecordingService : Service() {
     private var errorOccurred = false
     private var errorToastShown = false
     private var SAMPLE_RATE = 32000
+    private var MAX_RECORDING_AGE_MS = 30 * 60 * 1000 // 30 minutes
 
     private lateinit var audioRecord: AudioRecord
     private val bufferSizeInBytes: Int = AudioRecord.getMinBufferSize(
@@ -72,7 +73,6 @@ class AudioRecordingService : Service() {
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "AudioRecordingChannel"
         private const val CHUNK_DURATION_MS = 60_000L // 1 minute chunks
-        private const val MAX_RECORDING_AGE_MS = 30 * 60 * 1000L // 30 minutes TODO: Implement logic to manage this
         private const val FILE_PREFIX = "audio_chunk_"
         private const val AUDIO_DIR = "InstantRplay" // Sub-directory for audio files
         private const val TAG = "AudioRecordingService"
@@ -84,7 +84,9 @@ class AudioRecordingService : Service() {
 
         // Load the sample rate from preferences
         SAMPLE_RATE = PreferencesHelper.getSampleRate(this)
-        Log.d(TAG, "Sample rate: $SAMPLE_RATE")
+        MAX_RECORDING_AGE_MS = PreferencesHelper.getMaxRecordingAge(this) * 60 * 1000
+        // Stored in preferences as minutes
+        Log.d(TAG, "Sample rate: $SAMPLE_RATE, Max recording age: $MAX_RECORDING_AGE_MS")
 
         createNotificationChannel()
         if (!errorOccurred) {
