@@ -10,6 +10,7 @@ material = "1.10.0"
 constraintlayout = "2.1.4"
 lifecycleLivedataKtx = "2.8.4"
 lifecycleViewmodelKtx = "2.8.4"
+materialVersion = "1.9.0"
 navigationFragmentKtx = "2.6.0"
 navigationUiKtx = "2.6.0"
 
@@ -25,6 +26,7 @@ androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecy
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
+material-v190 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -105,6 +105,7 @@ class AudioRecordingService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // TODO: Service doesnt fail on error on android <= 13, it just stops recording. It should be restarted
         if (!errorOccurred) {
             try {
                 startRecording()
