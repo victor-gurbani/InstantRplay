@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_save_1_min"
+        android:title="Save Last 1 Minute" />
+    <item
+        android:id="@+id/action_save_3_min"
+        android:title="Save Last 3 Minutes" />
+    <item
+        android:id="@+id/action_save_5_min"
+        android:title="Save Last 5 Minutes" />
+    <item
+        android:id="@+id/action_save_15_min"
+        android:title="Save Last 15 Minutes" />
+    <item
+        android:id="@+id/action_save_30_min"
+        android:title="Save Last 30 Minutes (Tap Default)" />
+    <item
+        android:id="@+id/action_save_60_min"
+        android:title="Save Last 60 Minutes" />
+    <item
+        android:id="@+id/action_save_120_min"
+        android:title="Save Last 120 Minutes" />
+    <item
+        android:id="@+id/action_save_custom"
+        android:title="Custom..." />
+</menu>

@@ -1,6 +1,7 @@
 package com.vgcsoftware.instantrplay
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -40,6 +41,12 @@ import java.io.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.TimeUnit
+import android.widget.PopupMenu
+import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.View
+import androidx.appcompat.app.AlertDialog
+import android.widget.EditText
 
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
@@ -160,9 +167,43 @@ class MainActivity : AppCompatActivity() {
 
         // Set up the toolbar and Floating Action Button (FAB)
         setSupportActionBar(binding.appBarMain.toolbar)
-        binding.appBarMain.fab.setOnClickListener { view ->
-            saveLast(30)
+
+        binding.appBarMain.fab.setOnTouchListener(object : View.OnTouchListener {
+            private var isLongPress = false
+
+            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                when (event?.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        isLongPress = true
+                        v?.postDelayed({
+                            if (isLongPress) {
+                                showPopupMenu(v)
+                            }
+                        }, 60) // Long press duration (60ms)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        if (!isLongPress) return false
+                        if (event.eventTime - event.downTime < 60) {
+                            // Handle short tap
+                            saveLast(30) // Call saveLast with default value if it's a quick tap
+                            v?.performClick() // Ensure accessibility services can handle click event
+                        }
+                        isLongPress = false
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        isLongPress = false
+                    }
+                }
+                return true
+            }
+        })
+
+        // Override performClick() to handle the accessibility click event
+        binding.appBarMain.fab.setOnClickListener {
+            saveLast(30) // Perform the click action here for short taps
         }
+
+
 
         // Initialize navigation drawer and controller
         val drawerLayout: DrawerLayout = binding.drawerLayout
@@ -182,6 +223,51 @@ class MainActivity : AppCompatActivity() {
         requestPermissions()
 
 
+    }
+
+    private fun showPopupMenu(view: View) {
+        val popup = PopupMenu(this, view)
+        popup.menuInflater.inflate(R.menu.fab_menu, popup.menu)
+
+        // Handle menu item clicks
+        popup.setOnMenuItemClickListener { menuItem: MenuItem ->
+            when (menuItem.itemId) {
+                R.id.action_save_1_min -> saveLast(1)
+                R.id.action_save_3_min -> saveLast(3)
+                R.id.action_save_5_min -> saveLast(5)
+                R.id.action_save_15_min -> saveLast(15)
+                R.id.action_save_30_min -> saveLast(30)
+                R.id.action_save_60_min -> saveLast(60)
+                R.id.action_save_120_min -> saveLast(120)
+                R.id.action_save_custom -> showCustomInputDialog()
+                else -> false
+            }
+            true
+        }
+
+        popup.show()
+    }
+    private fun showCustomInputDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Enter custom minutes")
+
+        // Set up the input
+        val input = EditText(this)
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        builder.setView(input)
+
+        // Set up the buttons
+        builder.setPositiveButton("OK") { dialog, which ->
+            val customTime = input.text.toString().toIntOrNull()
+            if (customTime != null && customTime > 0) {
+                saveLast(customTime)
+            } else {
+                Toast.makeText(this, "Invalid input", Toast.LENGTH_SHORT).show()
+            }
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+
+        builder.show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
