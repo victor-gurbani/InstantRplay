@@ -28,6 +28,7 @@
    Head over to this repository's [Releases](https://github.com/victor-gurbani/InstantRplay/releases) section to download the latest stable version of **Instant Rplay**.
 
 *or*
+### **Build it yourself**
 
 1. **Clone the Repository** *(for developers)*:
    If you'd like to customize the app or contribute to development, clone the repository:
