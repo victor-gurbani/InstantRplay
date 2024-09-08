@@ -45,7 +45,7 @@
    - Foreground service: To keep capturing audio even when the app is in the background.
    - Storage: To save the recorded audio files.
 
-** Permissions have been used according to best practices**
+*Permissions have been used according to best practices*
 
 ## Usage
 
