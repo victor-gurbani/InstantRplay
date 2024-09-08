@@ -70,6 +70,6 @@ Contributions are welcome! If you have any ideas or bug fixes, please feel free 
 
 This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
 
-## Stars
+## Star History
 
-<iframe style="width:100%;height:auto;min-width:600px;min-height:400px;" src="https://star-history.com/embed?secret=Z2hwX1ZyQTM0eVRSQm9nRUNBcURCMVhhczI3MFBjVkVQeTNuRGRsQQ==#victor-gurbani/InstantRplay&Date" frameBorder="0"></iframe>
+[![Star History Chart](https://api.star-history.com/svg?repos=victor-gurbani/InstantRplay&type=Date)](https://star-history.com/#victor-gurbani/InstantRplay&Date)
