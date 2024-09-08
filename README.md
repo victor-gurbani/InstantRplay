@@ -3,6 +3,8 @@
 #### **Instant Rplay** is an Android app that captures audio in the background, allowing quick access to previously recorded audio moments.
 *Inspired by Nvidia's Instant Replay* 
 
+[Download Latest Release](https://github.com/victor-gurbani/InstantRplay/releases/latest)
+
 ## Features
 
 - **Continuous Background Audio Capture**: Continuously record audio in the background, ensuring you always have access to what happened moments before.
