@@ -179,11 +179,11 @@ class MainActivity : AppCompatActivity() {
                             if (isLongPress) {
                                 showPopupMenu(v)
                             }
-                        }, 60) // Long press duration (60ms)
+                        }, 140) // Long press duration (140ms)
                     }
                     MotionEvent.ACTION_UP -> {
                         if (!isLongPress) return false
-                        if (event.eventTime - event.downTime < 60) {
+                        if (event.eventTime - event.downTime < 140) {
                             // Handle short tap
                             saveLast(30) // Call saveLast with default value if it's a quick tap
                             v?.performClick() // Ensure accessibility services can handle click event
