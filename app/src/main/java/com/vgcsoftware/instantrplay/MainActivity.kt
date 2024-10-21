@@ -47,6 +47,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import android.widget.EditText
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
@@ -436,7 +437,18 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Convert the concatenated PCM file to WAV
-            val wavFile = File(beforeDir, "InstantRplay_${currentTime}_${minutes}min.wav")
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = currentTime
+            val year = calendar.get(Calendar.YEAR)
+            val month = calendar.get(Calendar.MONTH) + 1 // Month is 0-based
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+            val hour = calendar.get(Calendar.HOUR_OF_DAY)
+            val minute = calendar.get(Calendar.MINUTE)
+            val second = calendar.get(Calendar.SECOND)
+            val formattedTime = String.format("%04d-%02d-%02d_%02d-%02d-%02d", year, month, day, hour, minute, second)
+
+            Log.d("saveLast", "Formatted time: $formattedTime")
+            val wavFile = File(beforeDir, "InstantRplay_${formattedTime}_${minutes}min.wav")
             Log.d("saveLast", "Converting tempPCM file to: ${wavFile.absolutePath}")
             rawToWave(tempPcmFile, wavFile)
 
