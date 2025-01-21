@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startService(restartIntent)
             }
-            finish()
+            finishAndRemoveTask()
         }
 
         // Set up the toolbar and Floating Action Button (FAB)
@@ -378,6 +378,18 @@ class MainActivity : AppCompatActivity() {
 
 
     fun saveLast(minutes: Int) {
+
+        Toast.makeText(this, "Saving audio until now...", Toast.LENGTH_SHORT).show()
+        // Restarting the service
+        stopService(Intent(this, AudioRecordingService::class.java))
+
+        val restartIntent = Intent(this, AudioRecordingService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(restartIntent)
+        } else {
+            startService(restartIntent)
+        }
+
         Log.d("saveLast", "Saving PCM files from the last $minutes minutes")
         // Snackbar.make(findViewById(android.R.id.content), "Saving last $minutes min", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show() // this wont show
         Toast.makeText(this, "Saving last $minutes min", Toast.LENGTH_LONG).show()
