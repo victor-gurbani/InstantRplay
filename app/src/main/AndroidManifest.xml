@@ -34,13 +34,15 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.InstantRPlay"
+        android:largeHeap="true"
         tools:targetApi="34">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.InstantRPlay.NoActionBar"
-            android:excludeFromRecents="true">
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

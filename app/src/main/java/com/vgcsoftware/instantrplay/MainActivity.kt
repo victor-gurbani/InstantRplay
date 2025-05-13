@@ -48,6 +48,10 @@ import android.view.View
 import androidx.appcompat.app.AlertDialog
 import android.widget.EditText
 import java.util.Calendar
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private val TAG = "MainActivity"
@@ -390,95 +394,102 @@ class MainActivity : AppCompatActivity() {
             startService(restartIntent)
         }
 
-        Log.d("saveLast", "Saving PCM files from the last $minutes minutes")
-        // Snackbar.make(findViewById(android.R.id.content), "Saving last $minutes min", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show() // this wont show
-        Toast.makeText(this, "Saving last $minutes min", Toast.LENGTH_LONG).show()
-
-        // Directory containing PCM files
-        val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), "InstantRplay")
-        } else {
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "InstantRplay")
-        }
-        val beforeDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS)
-        } else {
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-        }
-
-        // Current time
-        val currentTime = System.currentTimeMillis()
-
-        // Filter PCM files less than 'minutes' old
-        // Supposedly filextension is pcm but it is saved as wav
-        val filteredFiles = dir.listFiles { file ->
-            file.extension == "wav" && file.isFile &&
-                    (currentTime - file.lastModified() <= TimeUnit.MINUTES.toMillis(minutes.toLong()))
-        }?.sortedBy { it.lastModified() } // Sort by last modified time
-
-        if (filteredFiles.isNullOrEmpty()) {
-            Log.d("saveLast", "No PCM files found in the last $minutes minutes.")
-            //Snackbar.make(findViewById(android.R.id.content), "No PCM files found in the last $minutes minutes.", Snackbar.LENGTH_LONG)
-            //    .setAction("Action", null)
-            //    .setAnchorView(R.id.fab).show()
-            // Show toast with the same message
-            Toast.makeText(this, "No PCM files found in the last $minutes minutes.", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        // Log the filtered files
-        filteredFiles.forEach { file ->
-            Log.d("saveLast", "Filtered file: ${file.name}")
-        }
-
-        val inAppDir = File(filesDir, "InstantRplay")
-        // Ensure the directory exists
-        if (!inAppDir.exists()) {
-            inAppDir.mkdirs()
-        }
-        // Create a temporary PCM file to hold concatenated data
-        val tempPcmFile = File(inAppDir, "temp_concatenated.pcm")
-
-        try {
-            FileOutputStream(tempPcmFile).use { output ->
-                for (file in filteredFiles) {
-                    FileInputStream(file).use { input ->
-                        input.copyTo(output)
-                    }
-                }
+        // Launch a coroutine for the heavy file operations
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Log.d("saveLast", "Saving PCM files from the last $minutes minutes")
+            
+            Log.d("saveLast", "Saving PCM files from the last $minutes minutes (Background Thread)")
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "Saving last $minutes min", Toast.LENGTH_LONG).show()
             }
 
-            // Convert the concatenated PCM file to WAV
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = currentTime
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH) + 1 // Month is 0-based
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
-            val hour = calendar.get(Calendar.HOUR_OF_DAY)
-            val minute = calendar.get(Calendar.MINUTE)
-            val second = calendar.get(Calendar.SECOND)
-            val formattedTime = String.format("%04d-%02d-%02d_%02d-%02d-%02d", year, month, day, hour, minute, second)
+            // Directory containing PCM files
+            val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), "InstantRplay")
+            } else {
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "InstantRplay")
+            }
+            val beforeDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS)
+            } else {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+            }
 
-            Log.d("saveLast", "Formatted time: $formattedTime")
-            val wavFile = File(beforeDir, "InstantRplay_${formattedTime}_${minutes}min.wav")
-            Log.d("saveLast", "Converting tempPCM file to: ${wavFile.absolutePath}")
-            rawToWave(tempPcmFile, wavFile)
+            // Current time
+            val currentTime = System.currentTimeMillis()
 
-            Log.d("saveLast", "WAV file saved successfully: ${wavFile.absolutePath}")
-            // Snackbar.make( findViewById(android.R.id.content), "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Snackbar.LENGTH_LONG).setAnchorView(R.id.fab).show()
-            Toast.makeText(this, "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Toast.LENGTH_LONG).show()
-            // Add to MediaStore
-            MediaScannerConnection.scanFile(this, arrayOf(wavFile.absolutePath), null, null)
-        } catch (e: IOException) {
-            Log.e("saveLast", "Error processing PCM files", e)
-        } finally {
-            // Clean up temporary PCM file
-            if (tempPcmFile.exists()) {
-                tempPcmFile.delete()
+            // Filter PCM files less than 'minutes' old
+            // Supposedly filextension is pcm but it is saved as wav
+            val filteredFiles = dir.listFiles { file ->
+                file.extension == "wav" && file.isFile &&
+                        (currentTime - file.lastModified() <= TimeUnit.MINUTES.toMillis(minutes.toLong()))
+            }?.sortedBy { it.lastModified() } // Sort by last modified time
+
+            if (filteredFiles.isNullOrEmpty()) {
+                Log.d("saveLast", "No PCM files found in the last $minutes minutes.")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "No PCM files found in the last $minutes minutes.", Toast.LENGTH_LONG).show()
+                }
+                return@launch // Exit this coroutine
+            }
+
+            // Log the filtered files
+            filteredFiles.forEach { file ->
+                Log.d("saveLast", "Filtered file: ${file.name}")
+            }
+
+            val inAppDir = File(filesDir, "InstantRplay")
+            // Ensure the directory exists
+            if (!inAppDir.exists()) {
+                inAppDir.mkdirs()
+            }
+            // Create a temporary PCM file to hold concatenated data
+            val tempPcmFile = File(inAppDir, "temp_concatenated.pcm")
+
+            try {
+                FileOutputStream(tempPcmFile).use { output ->
+                    for (file in filteredFiles) {
+                        FileInputStream(file).use { input ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+
+                // Convert the concatenated PCM file to WAV
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = currentTime
+                val year = calendar.get(Calendar.YEAR)
+                val month = calendar.get(Calendar.MONTH) + 1 // Month is 0-based
+                val day = calendar.get(Calendar.DAY_OF_MONTH)
+                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                val minute = calendar.get(Calendar.MINUTE)
+                val second = calendar.get(Calendar.SECOND)
+                val formattedTime = String.format("%04d-%02d-%02d_%02d-%02d-%02d", year, month, day, hour, minute, second)
+
+                Log.d("saveLast", "Formatted time: $formattedTime")
+                val wavFile = File(beforeDir, "InstantRplay_${formattedTime}_${minutes}min.wav")
+                Log.d("saveLast", "Converting tempPCM file to: ${wavFile.absolutePath}")
+                rawToWave(tempPcmFile, wavFile) // This will run on Dispatchers.IO
+
+                Log.d("saveLast", "WAV file saved successfully: ${wavFile.absolutePath}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Toast.LENGTH_LONG).show()
+                }
+                // Add to MediaStore
+                MediaScannerConnection.scanFile(this@MainActivity, arrayOf(wavFile.absolutePath), null, null)
+            } catch (e: IOException) {
+                Log.e("saveLast", "Error processing PCM files", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Error saving audio: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                // Clean up temporary PCM file
+                if (tempPcmFile.exists()) {
+                    tempPcmFile.delete()
+                }
             }
         }
     }
-
 
     @Throws(IOException::class)
     fun rawToWave(rawFile: File, waveFile: File) {
