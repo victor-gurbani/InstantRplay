@@ -45,9 +45,16 @@ import android.widget.PopupMenu
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.view.LayoutInflater
+import android.widget.Button
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import android.widget.EditText
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -245,6 +252,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.action_save_60_min -> saveLast(60)
                 R.id.action_save_120_min -> saveLast(120)
                 R.id.action_save_custom -> showCustomInputDialog()
+                R.id.action_save_custom_time_frame -> showCustomTimeFrameDialog()
                 else -> false
             }
             true
@@ -273,6 +281,106 @@ class MainActivity : AppCompatActivity() {
         builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
 
         builder.show()
+    }
+
+    private fun showCustomTimeFrameDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_custom_time_frame, null)
+        val builder = AlertDialog.Builder(this)
+            .setTitle("Select Time Frame")
+            .setView(dialogView)
+            .setPositiveButton("Save", null)
+            .setNegativeButton("Cancel", null)
+
+        val dialog = builder.create()
+        dialog.show()
+
+        val btnStartDate = dialogView.findViewById<Button>(R.id.btn_start_date)
+        val btnStartTime = dialogView.findViewById<Button>(R.id.btn_start_time)
+        val tvStartTime = dialogView.findViewById<TextView>(R.id.tv_start_time)
+        val btnEndDate = dialogView.findViewById<Button>(R.id.btn_end_date)
+        val btnEndTime = dialogView.findViewById<Button>(R.id.btn_end_time)
+        val tvEndTime = dialogView.findViewById<TextView>(R.id.tv_end_time)
+
+        val startCalendar = Calendar.getInstance()
+        val endCalendar = Calendar.getInstance()
+
+        btnStartDate.setOnClickListener {
+            val datePickerDialog = DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    startCalendar.set(Calendar.YEAR, year)
+                    startCalendar.set(Calendar.MONTH, month)
+                    startCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                    tvStartTime.text = sdf.format(startCalendar.time)
+                },
+                startCalendar.get(Calendar.YEAR),
+                startCalendar.get(Calendar.MONTH),
+                startCalendar.get(Calendar.DAY_OF_MONTH)
+            )
+            datePickerDialog.show()
+        }
+
+        btnStartTime.setOnClickListener {
+            val timePickerDialog = TimePickerDialog(
+                this,
+                { _, hourOfDay, minute ->
+                    startCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    startCalendar.set(Calendar.MINUTE, minute)
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                    tvStartTime.text = sdf.format(startCalendar.time)
+                },
+                startCalendar.get(Calendar.HOUR_OF_DAY),
+                startCalendar.get(Calendar.MINUTE),
+                true
+            )
+            timePickerDialog.show()
+        }
+
+        btnEndDate.setOnClickListener {
+            val datePickerDialog = DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    endCalendar.set(Calendar.YEAR, year)
+                    endCalendar.set(Calendar.MONTH, month)
+                    endCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                    tvEndTime.text = sdf.format(endCalendar.time)
+                },
+                endCalendar.get(Calendar.YEAR),
+                endCalendar.get(Calendar.MONTH),
+                endCalendar.get(Calendar.DAY_OF_MONTH)
+            )
+            datePickerDialog.show()
+        }
+
+        btnEndTime.setOnClickListener {
+            val timePickerDialog = TimePickerDialog(
+                this,
+                { _, hourOfDay, minute ->
+                    endCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    endCalendar.set(Calendar.MINUTE, minute)
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                    tvEndTime.text = sdf.format(endCalendar.time)
+                },
+                endCalendar.get(Calendar.HOUR_OF_DAY),
+                endCalendar.get(Calendar.MINUTE),
+                true
+            )
+            timePickerDialog.show()
+        }
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val startTime = startCalendar.timeInMillis
+            val endTime = endCalendar.timeInMillis
+
+            if (startTime >= endTime) {
+                Toast.makeText(this, "Start time must be before end time", Toast.LENGTH_SHORT).show()
+            } else {
+                saveBetween(startTime, endTime)
+                dialog.dismiss()
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -479,6 +587,100 @@ class MainActivity : AppCompatActivity() {
                 MediaScannerConnection.scanFile(this@MainActivity, arrayOf(wavFile.absolutePath), null, null)
             } catch (e: IOException) {
                 Log.e("saveLast", "Error processing PCM files", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Error saving audio: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                // Clean up temporary PCM file
+                if (tempPcmFile.exists()) {
+                    tempPcmFile.delete()
+                }
+            }
+        }
+    }
+
+    fun saveBetween(startTime: Long, endTime: Long) {
+        Toast.makeText(this, "Saving audio between selected times...", Toast.LENGTH_SHORT).show()
+
+        // Launch a coroutine for the heavy file operations
+        lifecycleScope.launch(Dispatchers.IO) {
+            Log.d("saveBetween", "Saving PCM files from $startTime to $endTime (Background Thread)")
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "Saving audio from specified time frame", Toast.LENGTH_LONG).show()
+            }
+
+            // Directory containing PCM files
+            val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS), "InstantRplay")
+            } else {
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "InstantRplay")
+            }
+            val beforeDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RECORDINGS)
+            } else {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+            }
+
+            // Filter PCM files within the selected time frame
+            val filteredFiles = dir.listFiles { file ->
+                file.extension == "pcm" && file.isFile &&
+                        (file.lastModified() >= startTime && file.lastModified() <= endTime)
+            }?.sortedBy { it.lastModified() } // Sort by last modified time
+
+            if (filteredFiles.isNullOrEmpty()) {
+                Log.d("saveBetween", "No PCM files found in the specified time frame.")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "No PCM files found in the specified time frame.", Toast.LENGTH_LONG).show()
+                }
+                return@launch // Exit this coroutine
+            }
+
+            // Log the filtered files
+            filteredFiles.forEach { file ->
+                Log.d("saveBetween", "Filtered file: ${file.name}")
+            }
+
+            val inAppDir = File(filesDir, "InstantRplay")
+            // Ensure the directory exists
+            if (!inAppDir.exists()) {
+                inAppDir.mkdirs()
+            }
+            // Create a temporary PCM file to hold concatenated data
+            val tempPcmFile = File(inAppDir, "temp_concatenated.pcm")
+
+            try {
+                FileOutputStream(tempPcmFile).use { output ->
+                    for (file in filteredFiles) {
+                        FileInputStream(file).use { input ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+
+                // Convert the concatenated PCM file to WAV
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = System.currentTimeMillis()
+                val year = calendar.get(Calendar.YEAR)
+                val month = calendar.get(Calendar.MONTH) + 1 // Month is 0-based
+                val day = calendar.get(Calendar.DAY_OF_MONTH)
+                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                val minute = calendar.get(Calendar.MINUTE)
+                val second = calendar.get(Calendar.SECOND)
+                val formattedTime = String.format("%04d-%02d-%02d_%02d-%02d-%02d", year, month, day, hour, minute, second)
+
+                Log.d("saveBetween", "Formatted time: $formattedTime")
+                val wavFile = File(beforeDir, "InstantRplay_${formattedTime}_custom.wav")
+                Log.d("saveBetween", "Converting tempPCM file to: ${wavFile.absolutePath}")
+                rawToWave(tempPcmFile, wavFile) // This will run on Dispatchers.IO
+
+                Log.d("saveBetween", "WAV file saved successfully: ${wavFile.absolutePath}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Finished Processing InstantRplay! Check it out in: ${wavFile.absolutePath}", Toast.LENGTH_LONG).show()
+                }
+                // Add to MediaStore
+                MediaScannerConnection.scanFile(this@MainActivity, arrayOf(wavFile.absolutePath), null, null)
+            } catch (e: IOException) {
+                Log.e("saveBetween", "Error processing PCM files", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "Error saving audio: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 }
