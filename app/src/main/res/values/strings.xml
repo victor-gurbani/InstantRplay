@@ -10,4 +10,8 @@
     <string name="menu_home">Home</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="shortcut_stop_short">Stop InstantRPlay</string>
+    <string name="shortcut_stop_long">Stop InstantRPlay and recording</string>
+    <string name="shortcut_stop_disabled">Stop shortcut unavailable</string>
+    <string name="stop_shortcut_feedback">InstantRPlay is shutting down</string>
 </resources>

@@ -36,6 +36,7 @@
         android:theme="@style/Theme.InstantRPlay"
         android:largeHeap="true"
         tools:targetApi="34">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -43,12 +44,22 @@
             android:theme="@style/Theme.InstantRPlay.NoActionBar"
             android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|keyboardHidden">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".StopAppActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.InstantRPlay.TransparentActivity" />
 
         <!-- Ensure your service runs in the background -->
         <service android:name=".AudioRecordingService"

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="stop_app"
+        android:enabled="true"
+        android:icon="@drawable/ic_stop"
+        android:shortcutShortLabel="@string/shortcut_stop_short"
+        android:shortcutLongLabel="@string/shortcut_stop_long"
+        android:shortcutDisabledMessage="@string/shortcut_stop_disabled">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.vgcsoftware.instantrplay"
+            android:targetClass="com.vgcsoftware.instantrplay.StopAppActivity" />
+    </shortcut>
+</shortcuts>

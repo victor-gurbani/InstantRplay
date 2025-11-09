@@ -56,6 +56,8 @@
 
 - **View Audio Size**: In the settings menu, view the storage size based on your current recording settings. Adjust the sample rate and storage duration as needed.
 
+- **Stop Recording**: From your launcher, long-press the Instant Rplay icon and choose **Stop InstantRPlay**. The shortcut shuts down the recorder, cancels scheduled restarts, and closes the app.
+
 ## Contributing
 
 Contributions are welcome! If you have any ideas or bug fixes, please feel free to submit a pull request or open an issue.
