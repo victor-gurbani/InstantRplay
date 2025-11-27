@@ -490,6 +490,22 @@ class MainActivity : AppCompatActivity() {
 
 
     fun saveLast(minutes: Int) {
+        val maxRecordingAge = PreferencesHelper.getMaxRecordingAge(this)
+        if (minutes > maxRecordingAge) {
+            PreferencesHelper.setMaxRecordingAge(this, minutes)
+            AlertDialog.Builder(this)
+                .setTitle("Time Window Adjusted")
+                .setMessage("Couldn't save last $minutes minutes due to time frame settings - it will be auto adjusted.")
+                .setPositiveButton("OK", null)
+                .setCancelable(false)
+                .show()
+            performSaveLast(minutes)
+        } else {
+            performSaveLast(minutes)
+        }
+    }
+
+    private fun performSaveLast(minutes: Int) {
 
         Toast.makeText(this, "Saving audio until now...", Toast.LENGTH_SHORT).show()
         // Restarting the service

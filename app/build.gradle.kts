@@ -11,8 +11,8 @@ android {
         applicationId = "com.vgcsoftware.instantrplay"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.8.1"
+        versionCode = 2
+        versionName = "0.8.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
