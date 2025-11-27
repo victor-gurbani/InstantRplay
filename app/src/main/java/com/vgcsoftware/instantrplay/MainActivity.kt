@@ -302,7 +302,11 @@ class MainActivity : AppCompatActivity() {
         val tvEndTime = dialogView.findViewById<TextView>(R.id.tv_end_time)
 
         val startCalendar = Calendar.getInstance()
+        startCalendar.set(Calendar.SECOND, 0)
+        startCalendar.set(Calendar.MILLISECOND, 0)
         val endCalendar = Calendar.getInstance()
+        endCalendar.set(Calendar.SECOND, 0)
+        endCalendar.set(Calendar.MILLISECOND, 0)
 
         btnStartDate.setOnClickListener {
             val datePickerDialog = DatePickerDialog(
