@@ -18,6 +18,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
     val text: LiveData<String> = _text
 
+    private val _maxRecordingAge = MutableLiveData<Int>()
+    val maxRecordingAge: LiveData<Int> = _maxRecordingAge
+
+    init {
+        _maxRecordingAge.value = preferences.getMaxRecordingAge(getApplication())
+    }
+
     // Function to start recording audio (triggered from a service)
     fun startRecording() {
         viewModelScope.launch {
@@ -52,6 +59,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setMaxRecordingAge(maxRecordingAge: Int) {
         preferences.setMaxRecordingAge(this.getApplication(), maxRecordingAge)
+        _maxRecordingAge.value = maxRecordingAge
     }
 
     // Calculate the size of audio per minute based on sample rate
