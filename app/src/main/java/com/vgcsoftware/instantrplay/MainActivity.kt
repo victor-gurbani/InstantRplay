@@ -375,15 +375,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val startTime = startCalendar.timeInMillis
-            val endTime = endCalendar.timeInMillis
+            var startTime = startCalendar.timeInMillis
+            var endTime = endCalendar.timeInMillis
 
-            if (startTime >= endTime) {
-                Toast.makeText(this, "Start time must be before end time", Toast.LENGTH_SHORT).show()
-            } else {
-                saveBetween(startTime, endTime)
-                dialog.dismiss()
+            if (startTime > endTime) {
+                val temp = startTime
+                startTime = endTime
+                endTime = temp
             }
+
+            saveBetween(startTime, endTime)
+            dialog.dismiss()
         }
     }
 
@@ -625,8 +627,13 @@ class MainActivity : AppCompatActivity() {
         // Launch a coroutine for the heavy file operations
         lifecycleScope.launch(Dispatchers.IO) {
             Log.d("saveBetween", "Saving PCM files from $startTime to $endTime (Background Thread)")
+            val durationMillis = endTime - startTime
+            val hours = TimeUnit.MILLISECONDS.toHours(durationMillis)
+            val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMillis) % 60
+            val durationString = if (hours > 0) "$hours hour(s) $minutes min" else "$minutes min"
+
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "Saving audio from specified time frame", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "Saving $durationString from specified time frame", Toast.LENGTH_LONG).show()
             }
 
             // Directory containing PCM files
@@ -643,7 +650,7 @@ class MainActivity : AppCompatActivity() {
 
             // Filter PCM files within the selected time frame
             val filteredFiles = dir.listFiles { file ->
-                file.extension == "pcm" && file.isFile &&
+                (file.extension == "pcm" || file.extension == "wav") && file.isFile &&
                         (file.lastModified() >= startTime && file.lastModified() <= endTime)
             }?.sortedBy { it.lastModified() } // Sort by last modified time
 
