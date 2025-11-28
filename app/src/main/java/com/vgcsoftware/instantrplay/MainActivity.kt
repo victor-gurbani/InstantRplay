@@ -518,18 +518,22 @@ class MainActivity : AppCompatActivity() {
     private fun performSaveLast(minutes: Int) {
 
         Toast.makeText(this, "Saving audio until now...", Toast.LENGTH_SHORT).show()
-        // Restarting the service
-        stopService(Intent(this, AudioRecordingService::class.java))
 
-        val restartIntent = Intent(this, AudioRecordingService::class.java)
+        // Signal service to flush current buffer
+        val saveNowIntent = Intent(this, AudioRecordingService::class.java).apply {
+            action = AudioRecordingService.ACTION_SAVE_NOW
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(restartIntent)
+            startForegroundService(saveNowIntent)
         } else {
-            startService(restartIntent)
+            startService(saveNowIntent)
         }
 
         // Launch a coroutine for the heavy file operations
         lifecycleScope.launch(Dispatchers.IO) {
+            // Give the service some time to flush the file
+            kotlinx.coroutines.delay(1000)
+
             // Log.d("saveLast", "Saving PCM files from the last $minutes minutes")
             
             Log.d("saveLast", "Saving PCM files from the last $minutes minutes (Background Thread)")
