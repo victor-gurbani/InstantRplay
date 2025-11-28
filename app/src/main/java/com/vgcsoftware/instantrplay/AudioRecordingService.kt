@@ -64,6 +64,7 @@ class AudioRecordingService : Service() {
     private var errorToastShown = false
     private var SAMPLE_RATE = 32000
     private var MAX_RECORDING_AGE_MS = 30 * 60 * 1000 // 30 minutes
+    @Volatile private var flushRequested = false
 
     private lateinit var audioRecord: AudioRecord
     private val bufferSizeInBytes: Int = AudioRecord.getMinBufferSize(
@@ -73,6 +74,7 @@ class AudioRecordingService : Service() {
     )
 
     companion object {
+        const val ACTION_SAVE_NOW = "ACTION_SAVE_NOW"
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "AudioRecordingChannel"
         private const val CHUNK_DURATION_MS = 60_000L // 1 minute chunks
@@ -81,15 +83,17 @@ class AudioRecordingService : Service() {
         private const val TAG = "AudioRecordingService"
     }
 
+    private fun loadPreferences() {
+        SAMPLE_RATE = PreferencesHelper.getSampleRate(this)
+        MAX_RECORDING_AGE_MS = PreferencesHelper.getMaxRecordingAge(this) * 60 * 1000
+        Log.d(TAG, "Preferences loaded. Sample rate: $SAMPLE_RATE, Max recording age: $MAX_RECORDING_AGE_MS")
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate() {
         super.onCreate()
 
-        // Load the sample rate from preferences
-        SAMPLE_RATE = PreferencesHelper.getSampleRate(this)
-        MAX_RECORDING_AGE_MS = PreferencesHelper.getMaxRecordingAge(this) * 60 * 1000
-        // Stored in preferences as minutes
-        Log.d(TAG, "Sample rate: $SAMPLE_RATE, Max recording age: $MAX_RECORDING_AGE_MS")
+        loadPreferences()
 
         createNotificationChannel()
         if (!errorOccurred) {
@@ -112,6 +116,12 @@ class AudioRecordingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // TODO: Service doesnt fail on error on android <= 13, it just stops recording. It should be restarted
         if (!errorOccurred) {
+            loadPreferences()
+            if (intent?.action == ACTION_SAVE_NOW) {
+                flushRequested = true
+                Log.d(TAG, "Flush requested via intent")
+            }
+
             try {
                 startRecording()
             } catch (e: Exception) {
@@ -277,10 +287,11 @@ class AudioRecordingService : Service() {
             val bytesRead = audioRecord.read(buffer, 0, buffer.size)
             chunkBuffer.write(buffer, 0, bytesRead) // Accumulate data
 
-            if (System.currentTimeMillis() - startTime >= CHUNK_DURATION_MS) {
+            if (System.currentTimeMillis() - startTime >= CHUNK_DURATION_MS || flushRequested) {
                 saveChunkToStorage(chunkBuffer.toByteArray(), chunkBuffer.size())
                 chunkBuffer.reset()  // Clear the buffer for the next chunk
                 startTime = System.currentTimeMillis()
+                flushRequested = false
             }
         }
 
