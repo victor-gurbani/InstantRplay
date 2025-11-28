@@ -10,9 +10,11 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.slider.Slider
 import com.vgcsoftware.instantrplay.AudioRecordingService
+import com.vgcsoftware.instantrplay.PreferencesHelper
 import com.vgcsoftware.instantrplay.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -20,9 +22,12 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: HomeViewModel
+    // Use activityViewModels to share ViewModel with Activity
+    private val viewModel: HomeViewModel by activityViewModels()
+
     private val sampleRates = listOf(8000, 16000, 32000, 44100, 48000)
-    private val storedTimes = listOf(5, 10, 15, 30, 60, 90, 120, 240, 360, 480, 960, 1920, 2880) // Intervals in minutes
+    // Use storedTimes from PreferencesHelper
+    private val storedTimes = PreferencesHelper.STORED_TIMES
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,8 +37,6 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
-
         val sampleRateLabel: TextView = binding.sampleRateLabel
         val audioSizeLabel: TextView = binding.audioSizeLabel
         val sampleRateSlider: Slider = binding.sampleRateSlider
@@ -41,16 +44,21 @@ class HomeFragment : Fragment() {
         val storedTimeSlider: Slider = binding.storedTimeSlider
 
         sampleRateSlider.value = sampleRates.indexOf(viewModel.getSampleRate()).toFloat()
-        storedTimeSlider.value = storedTimes.indexOf(viewModel.getMaxRecordingAge()).toFloat()
 
-        updateUI(
-            sampleRates[sampleRateSlider.value.toInt()],
-            storedTimes[storedTimeSlider.value.toInt()],
-            sampleRateLabel,
-            storedTimeLabel,
-            audioSizeLabel
-        )
-
+        // Observe maxRecordingAge changes
+        viewModel.maxRecordingAge.observe(viewLifecycleOwner) { age ->
+            val index = storedTimes.indexOf(age)
+            if (index != -1) {
+                storedTimeSlider.value = index.toFloat()
+                updateUI(
+                    sampleRates[sampleRateSlider.value.toInt()],
+                    age,
+                    sampleRateLabel,
+                    storedTimeLabel,
+                    audioSizeLabel
+                )
+            }
+        }
 
         sampleRateSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: Slider) {
@@ -78,13 +86,7 @@ class HomeFragment : Fragment() {
             override fun onStopTrackingTouch(slider: Slider) {
                 val selectedTime = storedTimes[slider.value.toInt()]
                 viewModel.setMaxRecordingAge(selectedTime)
-                updateUI(
-                    sampleRates[sampleRateSlider.value.toInt()],
-                    selectedTime,
-                    sampleRateLabel,
-                    storedTimeLabel,
-                    audioSizeLabel
-                )
+                // UI update will be handled by the observer
             }
         })
 
