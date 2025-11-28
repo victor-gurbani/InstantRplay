@@ -9,6 +9,9 @@ object PreferencesHelper {
     private const val SAMPLE_RATE_KEY = "sample_rate"
     private const val MAX_RECORDING_AGE_KEY = "max_recording_age"
 
+    // Intervals in minutes
+    val STORED_TIMES = listOf(5, 10, 15, 30, 60, 90, 120, 240, 360, 480, 960, 1920, 2880)
+
     private fun getPreferences(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFERENCES_FILE_KEY, Context.MODE_PRIVATE)
     }
