@@ -22,7 +22,7 @@ class HomeFragment : Fragment() {
 
     private lateinit var viewModel: HomeViewModel
     private val sampleRates = listOf(8000, 16000, 32000, 44100, 48000)
-    private val storedTimes = listOf(5, 10, 15, 30, 60, 90, 120, 240, 360, 480, 960, 1920, 2880) // Intervals in minutes
+    private val storedTimes = com.vgcsoftware.instantrplay.PreferencesHelper.STORED_TIMES
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,7 +32,7 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+        viewModel = ViewModelProvider(requireActivity())[HomeViewModel::class.java]
 
         val sampleRateLabel: TextView = binding.sampleRateLabel
         val audioSizeLabel: TextView = binding.audioSizeLabel
@@ -41,11 +41,30 @@ class HomeFragment : Fragment() {
         val storedTimeSlider: Slider = binding.storedTimeSlider
 
         sampleRateSlider.value = sampleRates.indexOf(viewModel.getSampleRate()).toFloat()
-        storedTimeSlider.value = storedTimes.indexOf(viewModel.getMaxRecordingAge()).toFloat()
+
+        // Observe maxRecordingAge to update slider
+        viewModel.maxRecordingAge.observe(viewLifecycleOwner) { age ->
+            val index = storedTimes.indexOf(age)
+            if (index >= 0) {
+                storedTimeSlider.value = index.toFloat()
+            } else {
+                // Handle invalid value: default to closest or last, here defaulting to last as safe fallback for "permanently unusable" case
+                // Or better, clamp to closest valid
+                 val closest = storedTimes.minByOrNull { kotlin.math.abs(it - age) } ?: storedTimes.last()
+                 storedTimeSlider.value = storedTimes.indexOf(closest).toFloat()
+            }
+            updateUI(
+                sampleRates[sampleRateSlider.value.toInt()],
+                storedTimes[storedTimeSlider.value.toInt()],
+                sampleRateLabel,
+                storedTimeLabel,
+                audioSizeLabel
+            )
+        }
 
         updateUI(
             sampleRates[sampleRateSlider.value.toInt()],
-            storedTimes[storedTimeSlider.value.toInt()],
+            storedTimes[storedTimeSlider.value.toInt()], // This might initially be 0 if observer hasn't run yet, but observer runs immediately
             sampleRateLabel,
             storedTimeLabel,
             audioSizeLabel

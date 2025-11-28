@@ -498,7 +498,9 @@ class MainActivity : AppCompatActivity() {
     fun saveLast(minutes: Int) {
         val maxRecordingAge = PreferencesHelper.getMaxRecordingAge(this)
         if (minutes > maxRecordingAge) {
-            PreferencesHelper.setMaxRecordingAge(this, minutes)
+            val newMax = PreferencesHelper.STORED_TIMES.firstOrNull { it >= minutes } ?: PreferencesHelper.STORED_TIMES.last()
+            homeViewModel.setMaxRecordingAge(newMax)
+
             AlertDialog.Builder(this)
                 .setTitle("Time Window Adjusted")
                 .setMessage("Couldn't save last $minutes minutes due to time frame settings - it will be auto adjusted.")
